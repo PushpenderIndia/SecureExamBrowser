@@ -1,7 +1,12 @@
 """OS-level lockdown for the exam session.
 
-activate()   — call before the window is shown
-deactivate() — call on app exit (connect to QApplication.aboutToQuit)
+Call sequence
+-------------
+1. ``activate()``       — before the window is shown (sleep prevention,
+                          notification suppression, taskbar hiding)
+2. ``activate_kiosk()`` — after the window is visible / inside the Qt event
+                          loop (NSApp presentation options on macOS)
+3. ``deactivate()``     — on app exit via QApplication.aboutToQuit
 
 All methods are best-effort: failures are silently swallowed so a missing
 binary or permission issue never crashes the exam.
@@ -12,29 +17,34 @@ from __future__ import annotations
 import subprocess
 import sys
 
+from .kiosk import KioskMode
+
 
 class SystemGuard:
-    """Prevents sleep, hides OS chrome, and suppresses notifications.
+    """Combines sleep prevention, OS-chrome hiding, notification suppression,
+    and macOS kiosk presentation options into one lifecycle object.
 
     Platform behaviour
     ------------------
-    macOS   : caffeinate -di (keep display + system awake),
-              write doNotDisturb pref + restart NotificationCenter
-    Windows : SetThreadExecutionState (keep display on),
-              hide Shell_TrayWnd taskbar via user32
-    Linux   : xset s off / -dpms (disable screensaver + DPMS),
-              gsettings GNOME show-banners false
+    macOS   : caffeinate -di, DoNotDisturb pref, :class:`~.kiosk.KioskMode`
+    Windows : SetThreadExecutionState, hide Shell_TrayWnd taskbar
+    Linux   : xset screensaver/DPMS off, GNOME show-banners false
     """
 
     def __init__(self) -> None:
         self._caffeinate: subprocess.Popen | None = None
         self._taskbar_hwnd: int = 0
+        self._kiosk = KioskMode()
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
     def activate(self) -> None:
+        """Sleep prevention + notification suppression + taskbar hiding.
+
+        Safe to call before the Qt event loop starts.
+        """
         try:
             if sys.platform == "darwin":
                 self._mac_activate()
@@ -45,7 +55,18 @@ class SystemGuard:
         except Exception:
             pass
 
+    def activate_kiosk(self) -> None:
+        """Apply NSApp presentation options (macOS only).
+
+        Must be called from the main thread *inside* the Qt event loop —
+        use ``QTimer.singleShot(0, guard.activate_kiosk)`` in ExamApp.run().
+        No-op on Windows / Linux.
+        """
+        self._kiosk.activate()
+
     def deactivate(self) -> None:
+        """Restore all OS defaults.  Connected to QApplication.aboutToQuit."""
+        self._kiosk.deactivate()
         try:
             if sys.platform == "darwin":
                 self._mac_deactivate()

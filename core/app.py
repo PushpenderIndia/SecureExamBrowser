@@ -1,5 +1,6 @@
 import sys
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from .config import ExamConfig
@@ -37,4 +38,5 @@ class ExamApp:
         self.system_guard.activate()
         self.qt_app.aboutToQuit.connect(self.system_guard.deactivate)
         self.window.show()
+        QTimer.singleShot(0, self.system_guard.activate_kiosk)
         sys.exit(self.qt_app.exec())

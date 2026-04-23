@@ -69,14 +69,14 @@ class ExamWindow(QMainWindow):
         self.setWindowTitle(self.config.window_title)
         self.setWindowFlags(
             Qt.Window
+            | Qt.FramelessWindowHint
             | Qt.CustomizeWindowHint    # take manual control of the button set
             | Qt.WindowTitleHint        # keep the title bar strip
             | Qt.WindowStaysOnTopHint   # always on top
-            # WindowCloseButtonHint    — omitted → no × button
-            # WindowMinimizeButtonHint — omitted → no _ button
-            # WindowMaximizeButtonHint — omitted → no □ button
         )
         self.showFullScreen()
+        self.raise_()
+        self.activateWindow()
 
     def _build_toolbar(self) -> None:
         toolbar = QToolBar("Exam Controls")
