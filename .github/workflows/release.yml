@@ -72,14 +72,10 @@ jobs:
           --name SecureExamBrowser
           main.py
 
+      # macOS: use the .spec file so Info.plist gets location-services keys
       - name: Build (macOS)
         if: runner.os == 'macOS'
-        run: >-
-          pyinstaller
-          --onedir
-          --windowed
-          --name SecureExamBrowser
-          main.py
+        run: pyinstaller SecureExamBrowser.spec
 
       - name: Package macOS .app → zip
         if: runner.os == 'macOS'

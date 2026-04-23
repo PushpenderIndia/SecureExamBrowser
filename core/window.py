@@ -1,9 +1,10 @@
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMainWindow, QToolBar
+from PySide6.QtWidgets import QMainWindow, QSizePolicy, QToolBar, QWidget
 
 from .browser import SecureBrowser
 from .config import ExamConfig
+from .network import NetworkMonitor, NetworkStatusWidget, WiFiManager
 from .quit_handler import QuitHandler
 
 _TOOLBAR_STYLE = """
@@ -33,18 +34,25 @@ class ExamWindow(QMainWindow):
 
     Quit paths
     ----------
-    * **Toolbar button / keyboard shortcut** — asks for the quit password.
-    * **System close** (Alt+F4, Cmd+Q, window × button) — also asks for the
-      quit password via ``closeEvent``.
-    * **Quit URL** — when the browser signals ``quit_url_reached`` the window
-      closes immediately with no password required.
+    * **Toolbar button** — asks for the quit password.
+    * **System close** (Alt+F4, Cmd+Q, window × button) — same password check
+      via ``closeEvent``.
+    * **Quit URL** — browser signals ``quit_url_reached`` → silent close.
     """
 
-    def __init__(self, config: ExamConfig, quit_handler: QuitHandler) -> None:
+    def __init__(
+        self,
+        config: ExamConfig,
+        quit_handler: QuitHandler,
+        network_monitor: NetworkMonitor,
+        wifi_manager: WiFiManager,
+    ) -> None:
         super().__init__()
-        self.config = config
-        self.quit_handler = quit_handler
-        self._force_close = False
+        self.config          = config
+        self.quit_handler    = quit_handler
+        self._network_monitor = network_monitor
+        self._wifi_manager   = wifi_manager
+        self._force_close    = False
 
         self.browser = SecureBrowser(config, quit_handler)
         self.setCentralWidget(self.browser)
@@ -64,7 +72,7 @@ class ExamWindow(QMainWindow):
             | Qt.CustomizeWindowHint    # take manual control of the button set
             | Qt.WindowTitleHint        # keep the title bar strip
             | Qt.WindowStaysOnTopHint   # always on top
-            # WindowCloseButtonHint   — omitted → no × button
+            # WindowCloseButtonHint    — omitted → no × button
             # WindowMinimizeButtonHint — omitted → no _ button
             # WindowMaximizeButtonHint — omitted → no □ button
         )
@@ -77,9 +85,26 @@ class ExamWindow(QMainWindow):
         toolbar.setStyleSheet(_TOOLBAR_STYLE)
         self.addToolBar(toolbar)
 
+        # Left side: exam controls
         quit_action = QAction("Quit Exam", self)
         quit_action.triggered.connect(self._on_quit_action)
         toolbar.addAction(quit_action)
+
+        toolbar.addSeparator()
+
+        reload_action = QAction("↻  Reload", self)
+        reload_action.setToolTip("Reload the current page")
+        reload_action.triggered.connect(lambda: self.browser.reload())
+        toolbar.addAction(reload_action)
+
+        # Right side: network status (push via expanding spacer)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        toolbar.addWidget(spacer)
+
+        toolbar.addWidget(
+            NetworkStatusWidget(self._network_monitor, self._wifi_manager, self)
+        )
 
     def _connect_signals(self) -> None:
         self.browser.quit_url_reached.connect(self._on_quit_url_reached)
@@ -107,7 +132,6 @@ class ExamWindow(QMainWindow):
         if self._force_close:
             event.accept()
             return
-        # Any other close attempt (Alt+F4, Cmd+Q, etc.) needs the password
         if self.quit_handler.check_password(self):
             event.accept()
         else:
