@@ -15,3 +15,17 @@
 - Linux: download [SecureExamBrowser-linux](https://github.com/PushpenderIndia/SecureExamBrowser/releases/latest/download/SecureExamBrowser-linux), run `chmod +x SecureExamBrowser-linux`, then start it.
 - macOS (Apple Silicon): download [SecureExamBrowser-macos-arm64.zip](https://github.com/PushpenderIndia/SecureExamBrowser/releases/latest/download/SecureExamBrowser-macos-arm64.zip), unzip it, then run `xattr -dr com.apple.quarantine SecureExamBrowser.app` before opening it because the app is not signed.
 - macOS (Intel): download [SecureExamBrowser-macos-intel.zip](https://github.com/PushpenderIndia/SecureExamBrowser/releases/latest/download/SecureExamBrowser-macos-intel.zip), unzip it, then run `xattr -dr com.apple.quarantine SecureExamBrowser.app` before opening it because the app is not signed.
+
+## Screenshots
+
+### 1. SecureExamBrowser opens your start exam 
+
+![Start URL](docs/start_url.png)
+
+### 2. User can switch to another WiFi from the SEB itself
+
+![Change WiFi](docs/change_wifi.png)
+
+### 3. Quit Exam using Admin Password 
+
+![Quit Exam](docs/quit_exam.png)
