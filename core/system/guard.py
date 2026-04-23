@@ -5,7 +5,7 @@ Call sequence
 1. ``activate()``       — before the window is shown (sleep prevention,
                           notification suppression, taskbar hiding)
 2. ``activate_kiosk()`` — after the window is visible / inside the Qt event
-                          loop (NSApp presentation options on macOS)
+                          loop (platform kiosk behavior)
 3. ``deactivate()``     — on app exit via QApplication.aboutToQuit
 
 All methods are best-effort: failures are silently swallowed so a missing
@@ -22,12 +22,12 @@ from .kiosk import KioskMode
 
 class SystemGuard:
     """Combines sleep prevention, OS-chrome hiding, notification suppression,
-    and macOS kiosk presentation options into one lifecycle object.
+    and platform kiosk options into one lifecycle object.
 
     Platform behaviour
     ------------------
     macOS   : caffeinate -di, DoNotDisturb pref, :class:`~.kiosk.KioskMode`
-    Windows : SetThreadExecutionState, hide Shell_TrayWnd taskbar
+    Windows : SetThreadExecutionState, hide Shell_TrayWnd, block escape keys
     Linux   : xset screensaver/DPMS off, GNOME show-banners false
     """
 
@@ -56,11 +56,11 @@ class SystemGuard:
             pass
 
     def activate_kiosk(self) -> None:
-        """Apply NSApp presentation options (macOS only).
+        """Apply platform-specific kiosk restrictions.
 
-        Must be called from the main thread *inside* the Qt event loop —
-        use ``QTimer.singleShot(0, guard.activate_kiosk)`` in ExamApp.run().
-        No-op on Windows / Linux.
+        Must be called after the window is visible. Using
+        ``QTimer.singleShot(0, guard.activate_kiosk)`` in ExamApp.run() keeps
+        this sequencing correct for macOS and Windows.
         """
         self._kiosk.activate()
 

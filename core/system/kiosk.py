@@ -1,33 +1,22 @@
-"""macOS kiosk mode via NSApplicationPresentationOptions.
+"""Platform kiosk facade.
 
-Hides the Dock and menu bar, disables Cmd+Tab, blocks Force Quit
-(Cmd+Option+Esc), disables the Apple menu, and prevents session
-termination (log out / shut down) for the lifetime of the exam.
+macOS:
+    Uses NSApplicationPresentationOptions to hide system chrome and block
+    process-switching shortcuts.
 
-Usage
------
-    from core.system.kiosk import KioskMode
-    kiosk = KioskMode()
-    kiosk.activate()    # must be called after the main window is shown
-    ...
-    kiosk.deactivate()  # called on app exit; restores full OS chrome
+Windows:
+    Uses a low-level keyboard hook to suppress common shell-switching and
+    escape shortcuts while the exam is active.
 
-Platform
---------
-No-op on Windows and Linux — safe to instantiate and call anywhere.
-
-Flag constants
---------------
-The individual flag values are exported so callers can compose a custom
-``options`` mask if the defaults don't fit their needs::
-
-    from core.system.kiosk import HIDE_DOCK, HIDE_MENU_BAR
-    kiosk = KioskMode(options=HIDE_DOCK | HIDE_MENU_BAR)
+Linux:
+    No-op for now.
 """
 
 from __future__ import annotations
 
 import sys
+
+from .windows_kiosk import WindowsKioskMode
 
 # ── Flag constants (stable since macOS 10.7) ──────────────────────────────────
 # Mirrors NSApplicationPresentationOptions from AppKit.
@@ -58,7 +47,7 @@ EXAM_FLAGS: int = (
 
 # ── KioskMode ────────────────────────────────────────────────────────────────
 
-class KioskMode:
+class _MacKioskMode:
     """Applies / removes macOS presentation options.
 
     Parameters
@@ -108,3 +97,25 @@ class KioskMode:
         if app is None:
             return
         app.setPresentationOptions_(flags)
+
+
+class KioskMode:
+    """Selects the best kiosk implementation for the active platform."""
+
+    def __init__(self, options: int = EXAM_FLAGS) -> None:
+        if sys.platform == "darwin":
+            self._impl = _MacKioskMode(options=options)
+        elif sys.platform == "win32":
+            self._impl = WindowsKioskMode()
+        else:
+            self._impl = None
+
+    def activate(self) -> None:
+        if self._impl is None:
+            return
+        self._impl.activate()
+
+    def deactivate(self) -> None:
+        if self._impl is None:
+            return
+        self._impl.deactivate()
