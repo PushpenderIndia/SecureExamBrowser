@@ -1,0 +1,99 @@
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+.eggs/
+wheels/
+pip-wheel-metadata/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+
+# Testing
+.pytest_cache/
+.tox/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+nosetests.xml
+test-results/
+
+# ── PySide6 / Qt ─────────────────────────────────────────────────────────────
+*.qmlc
+*.jsc
+# Qt Creator project files
+*.pro.user
+*.qbs.user
+CMakeLists.txt.user
+
+# PySide6 deployment output
+deployment/
+pyside6-deploy.spec
+
+# PyInstaller
+*.spec
+dist/
+build/
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+Network Trash Folder
+Temporary Items
+
+# ── IDEs / Editors ────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ── Secrets / Config ─────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+secrets.py
+config.local.py
+
+# ── Logs & Runtime ───────────────────────────────────────────────────────────
+*.log
+*.pid
+*.seed
+*.sqlite
+*.db
