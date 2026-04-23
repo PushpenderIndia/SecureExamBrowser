@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QApplication
 from .config import ExamConfig
 from .network import NetworkMonitor, WiFiManager
 from .quit_handler import QuitHandler
-from .system import SystemGuard
+from .system import RemoteAccessMonitor, SystemGuard
 from .window import ExamWindow
 
 
@@ -27,6 +27,7 @@ class ExamApp:
         self.network_monitor = NetworkMonitor()
         self.wifi_manager   = WiFiManager()
         self.system_guard   = SystemGuard()
+        self.remote_access_monitor = RemoteAccessMonitor()
         self.window = ExamWindow(
             config,
             self.quit_handler,
@@ -37,6 +38,8 @@ class ExamApp:
     def run(self) -> None:
         self.system_guard.activate()
         self.qt_app.aboutToQuit.connect(self.system_guard.deactivate)
+        self.remote_access_monitor.start()
+        self.qt_app.aboutToQuit.connect(self.remote_access_monitor.stop)
         self.window.show()
         QTimer.singleShot(0, self.system_guard.activate_kiosk)
         sys.exit(self.qt_app.exec())
