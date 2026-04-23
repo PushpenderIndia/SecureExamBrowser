@@ -59,7 +59,15 @@ class ExamWindow(QMainWindow):
 
     def _setup_window(self) -> None:
         self.setWindowTitle(self.config.window_title)
-        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(
+            Qt.Window
+            | Qt.CustomizeWindowHint    # take manual control of the button set
+            | Qt.WindowTitleHint        # keep the title bar strip
+            | Qt.WindowStaysOnTopHint   # always on top
+            # WindowCloseButtonHint   — omitted → no × button
+            # WindowMinimizeButtonHint — omitted → no _ button
+            # WindowMaximizeButtonHint — omitted → no □ button
+        )
         self.showFullScreen()
 
     def _build_toolbar(self) -> None:

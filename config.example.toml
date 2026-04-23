@@ -1,0 +1,14 @@
+[exam]
+# URL the browser opens on launch
+start_url = "https://example.com"
+
+# Password required to quit via the toolbar button or system close shortcut
+quit_password = "changeme"
+
+# When the browser navigates to this URL the session ends automatically
+# (no password required).  Point this at your platform's "submission confirmed"
+# page.  Leave empty to disable URL-based quit.
+quit_url = "https://example.com/exam/done"
+
+# Title shown in the window / taskbar
+window_title = "Secure Exam Browser"

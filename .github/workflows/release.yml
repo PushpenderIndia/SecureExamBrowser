@@ -1,0 +1,145 @@
+name: Build & Release
+
+# Runs when a version tag is pushed: git tag v1.2.3 && git push --tags
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'   # pre-releases: v1.0.0-beta.1
+
+permissions:
+  contents: write   # required to create a GitHub Release
+
+jobs:
+  # ── 1. Build one executable per platform ─────────────────────────────────
+  build:
+    name: Build — ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ── Windows ──────────────────────────────────────────────────────
+          - os: windows-latest
+            artifact_name: SecureExamBrowser-windows
+            asset_path: dist/SecureExamBrowser.exe
+
+          # ── macOS ─────────────────────────────────────────────────────────
+          - os: macos-latest
+            artifact_name: SecureExamBrowser-macos
+            asset_path: dist/SecureExamBrowser-macos.zip
+
+          # ── Linux ─────────────────────────────────────────────────────────
+          - os: ubuntu-latest
+            artifact_name: SecureExamBrowser-linux
+            asset_path: dist/SecureExamBrowser-linux
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      # PySide6 WebEngine on Linux needs several system libraries at link time
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libglib2.0-0 libdbus-1-3 \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+            libdrm2 libgbm1 libgtk-3-0 libxkbcommon0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-render-util0 libxcb-xkb1 \
+            libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+            libxss1 libxtst6 libpulse0 libfontconfig1
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt pyinstaller
+
+      # ── Platform-specific build + packaging ──────────────────────────────
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: >-
+          pyinstaller
+          --onefile
+          --windowed
+          --name SecureExamBrowser
+          main.py
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: >-
+          pyinstaller
+          --onedir
+          --windowed
+          --name SecureExamBrowser
+          main.py
+
+      - name: Package macOS .app → zip
+        if: runner.os == 'macOS'
+        run: |
+          cd dist
+          zip -r --symlinks SecureExamBrowser-macos.zip SecureExamBrowser.app
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: >-
+          pyinstaller
+          --onefile
+          --windowed
+          --name SecureExamBrowser
+          main.py
+
+      - name: Rename Linux binary
+        if: runner.os == 'Linux'
+        shell: bash
+        run: mv dist/SecureExamBrowser dist/SecureExamBrowser-linux
+
+      # ── Upload artifact for the release job ──────────────────────────────
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.asset_path }}
+          if-no-files-found: error
+          retention-days: 1
+
+  # ── 2. Gather artifacts and publish a GitHub Release ─────────────────────
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets/
+
+      # Flatten the per-artifact subdirectories so the paths are predictable
+      - name: Flatten artifact directories
+        run: |
+          mkdir -p dist-release
+          find release-assets -type f -exec mv {} dist-release/ \;
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "SecureExamBrowser ${{ github.ref_name }}"
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: |
+            dist-release/SecureExamBrowser.exe
+            dist-release/SecureExamBrowser-macos.zip
+            dist-release/SecureExamBrowser-linux
+            config.example.toml

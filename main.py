@@ -1,15 +1,8 @@
-from core import ExamApp, ExamConfig
+from core import ExamApp, load_config
 
 
 def main() -> None:
-    config = ExamConfig(
-        start_url="https://www.codechef.com",
-        quit_password="admin123",
-        # Navigate the student to this URL to end the session without a password.
-        # e.g. your platform's "submission confirmed" page.
-        quit_url="https://www.codechef.com/ide",
-        window_title="Secure Exam Browser",
-    )
+    config = load_config()   # reads config.toml from the project root
     ExamApp(config).run()
 
 

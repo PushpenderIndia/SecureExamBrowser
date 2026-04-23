@@ -91,6 +91,10 @@ Temporary Items
 secrets.py
 config.local.py
 
+# Exam config contains the quit password — keep out of version control.
+# Commit config.example.toml instead.
+config.toml
+
 # ── Logs & Runtime ───────────────────────────────────────────────────────────
 *.log
 *.pid
