@@ -77,6 +77,11 @@ jobs:
           --onefile
           --windowed
           --name SecureExamBrowser
+          --add-data "assets;assets"
+          --hidden-import PySide6.QtWebEngineWidgets
+          --hidden-import PySide6.QtWebEngineCore
+          --hidden-import PySide6.QtWebChannel
+          --hidden-import PySide6.QtNetwork
           main.py
 
       # macOS: use the .spec file so Info.plist gets location-services keys
@@ -97,6 +102,11 @@ jobs:
           --onefile
           --windowed
           --name SecureExamBrowser
+          --add-data "assets:assets"
+          --hidden-import PySide6.QtWebEngineWidgets
+          --hidden-import PySide6.QtWebEngineCore
+          --hidden-import PySide6.QtWebChannel
+          --hidden-import PySide6.QtNetwork
           main.py
 
       - name: Rename Linux binary
