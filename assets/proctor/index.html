@@ -21,10 +21,50 @@
                 </div>
 
                 <div id="introScreen" class="intro-screen">
-                    <p class="eyebrow">Step 1</p>
-                    <h2>Enable camera and capture once</h2>
-                    <p class="intro-copy">The exam page will load after a clear face is captured.</p>
-                    <button id="btnStartSession" disabled>Loading models...</button>
+                    <div class="intro-head">
+                        <div class="intro-copy-block">
+                            <p id="captureStepEyebrow" class="eyebrow">Step 1 of 3</p>
+                            <h2 id="captureStepTitle">Capture Front View</h2>
+                            <p id="captureStepCopy" class="intro-copy">Enable the camera, look straight into it, and capture a clear front-facing image.</p>
+                        </div>
+                        <div id="captureSteps" class="capture-steps">
+                            <button type="button" class="capture-step is-active" data-step-index="0">
+                                <span class="capture-step-label">Front View</span>
+                                <span class="capture-step-status">Pending</span>
+                                <img class="capture-step-thumb hidden" alt="Front view thumbnail">
+                            </button>
+                            <button type="button" class="capture-step" data-step-index="1">
+                                <span class="capture-step-label">Left View</span>
+                                <span class="capture-step-status">Pending</span>
+                                <img class="capture-step-thumb hidden" alt="Left view thumbnail">
+                            </button>
+                            <button type="button" class="capture-step" data-step-index="2">
+                                <span class="capture-step-label">Right View</span>
+                                <span class="capture-step-status">Pending</span>
+                                <img class="capture-step-thumb hidden" alt="Right view thumbnail">
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="intro-footer">
+                        <div class="capture-preview-shell">
+                            <img id="capturedPreview" class="captured-preview hidden" alt="Captured face preview">
+                            <div id="captureSuccessState" class="capture-success hidden">
+                                <div class="capture-success-icon">✓</div>
+                                <div class="capture-success-copy">
+                                    <span class="capture-success-title">Capture Ready</span>
+                                    <span class="capture-success-text">Confirm this image or retry this angle.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="capture-actions">
+                            <button id="btnStartCamera" disabled>Loading Models...</button>
+                            <button id="btnCaptureView" class="secondary-button hidden-action" disabled>Capture View</button>
+                            <button id="btnConfirmView" class="success-button hidden-action" disabled>Accept Image</button>
+                            <button id="btnRecaptureView" class="danger-button" disabled>Retry Capture</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

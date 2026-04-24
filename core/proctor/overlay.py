@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QObject, QPoint, QUrl, Qt, Signal, Slot
+from PySide6.QtCore import QObject, QPoint, QUrl, Qt, Signal, QSize, Slot
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -83,16 +83,18 @@ class ProctorOverlay(QFrame):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._drag_offset: QPoint | None = None
+        self._compact_size = QSize(400, 225)
+        self._compact_mode = False
         self._bridge = ProctorBridge(self)
         self._build_ui()
         self._configure_bridge()
         self._apply_styles()
+        self.enter_onboarding_mode()
 
     def _build_ui(self) -> None:
         self.setObjectName("proctorOverlay")
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setFixedSize(400, 225)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -117,27 +119,65 @@ class ProctorOverlay(QFrame):
             """
             QFrame#proctorOverlay {
                 background: #0b1220;
+            }
+            QFrame#proctorOverlay[compactMode="true"] {
                 border: 1px solid #243145;
                 border-radius: 14px;
+            }
+            QFrame#proctorOverlay[compactMode="false"] {
+                border: 0;
+                border-radius: 0;
             }
             """
         )
 
-    def move_to_default_position(self) -> None:
+    def _refresh_style(self) -> None:
+        self.style().unpolish(self)
+        self.style().polish(self)
+        self.update()
+
+    def _content_rect(self):
         parent = self.parentWidget()
         if parent is None:
+            return self.rect()
+        central_widget = getattr(parent, "centralWidget", lambda: None)()
+        if central_widget is None:
+            return parent.rect()
+        return central_widget.geometry()
+
+    def enter_onboarding_mode(self) -> None:
+        self._compact_mode = False
+        self.setProperty("compactMode", False)
+        self.setMinimumSize(0, 0)
+        self.setMaximumSize(16777215, 16777215)
+        self.setGeometry(self._content_rect())
+        self._refresh_style()
+
+    def enter_compact_mode(self) -> None:
+        self._compact_mode = True
+        self.setProperty("compactMode", True)
+        self.setFixedSize(self._compact_size)
+        self._refresh_style()
+        self.move_to_default_position()
+
+    def move_to_default_position(self) -> None:
+        if not self._compact_mode:
             return
-        x = max(16, parent.width() - self.width() - 24)
-        y = 72
+        content_rect = self._content_rect()
+        x = max(content_rect.left() + 16, content_rect.right() - self.width() - 24)
+        y = content_rect.top() + 16
         self.move(x, y)
 
     def keep_in_bounds(self) -> None:
-        parent = self.parentWidget()
-        if parent is None:
+        content_rect = self._content_rect()
+        if not self._compact_mode:
+            self.setGeometry(content_rect)
             return
-        max_x = max(0, parent.width() - self.width() - 8)
-        max_y = max(0, parent.height() - self.height() - 8)
-        self.move(min(max(self.x(), 8), max_x), min(max(self.y(), 72), max_y))
+        min_x = content_rect.left() + 8
+        min_y = content_rect.top() + 8
+        max_x = max(min_x, content_rect.right() - self.width() - 8)
+        max_y = max(min_y, content_rect.bottom() - self.height() - 8)
+        self.move(min(max(self.x(), min_x), max_x), min(max(self.y(), min_y), max_y))
 
     @Slot(int, int)
     def _start_drag(self, screen_x: int, screen_y: int) -> None:

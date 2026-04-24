@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMainWindow, QSizePolicy, QToolBar, QWidget
 
@@ -63,8 +63,9 @@ class ExamWindow(QMainWindow):
         self._setup_window()
         self._build_toolbar()
         self._connect_signals()
-        self.proctor_overlay.move_to_default_position()
+        self.browser.hide()
         self.proctor_overlay.show()
+        QTimer.singleShot(0, self.proctor_overlay.keep_in_bounds)
 
     # ------------------------------------------------------------------
     # Setup
@@ -134,7 +135,9 @@ class ExamWindow(QMainWindow):
         if self._exam_loaded:
             return
         self._exam_loaded = True
+        self.browser.show()
         self.browser.load_exam_url()
+        self.proctor_overlay.enter_compact_mode()
 
     # ------------------------------------------------------------------
     # Qt overrides
