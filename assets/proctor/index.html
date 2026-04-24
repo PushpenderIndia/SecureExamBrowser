@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Proctor</title>
+    <link rel="stylesheet" href="./proctor.css">
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script src="./vendor/face-api/face-api.js"></script>
+    <script src="./vendor/mediapipe/face_mesh.js"></script>
+</head>
+<body>
+    <main class="app-shell">
+        <section class="video-panel">
+            <div class="video-stage">
+                <video id="videoElement" autoplay muted playsinline></video>
+                <canvas id="canvasElement"></canvas>
+                <div id="detectionBanner" class="detection-banner hidden">
+                    <span class="detection-label">Detection</span>
+                    <span id="detectionType" class="detection-type"></span>
+                </div>
+
+                <div id="introScreen" class="intro-screen">
+                    <p class="eyebrow">Step 1</p>
+                    <h2>Enable camera and capture once</h2>
+                    <p class="intro-copy">The exam page will load after a clear face is captured.</p>
+                    <button id="btnStartSession" disabled>Loading models...</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="./proctor.js"></script>
+</body>
+</html>

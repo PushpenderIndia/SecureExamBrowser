@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QMainWindow, QSizePolicy, QToolBar, QWidget
 from .browser import SecureBrowser
 from .config import ExamConfig
 from .network import NetworkMonitor, NetworkStatusWidget, WiFiManager
+from .proctor import ProctorOverlay
 from .quit_handler import QuitHandler
 
 _TOOLBAR_STYLE = """
@@ -53,13 +54,17 @@ class ExamWindow(QMainWindow):
         self._network_monitor = network_monitor
         self._wifi_manager   = wifi_manager
         self._force_close    = False
+        self._exam_loaded    = False
 
         self.browser = SecureBrowser(config, quit_handler)
         self.setCentralWidget(self.browser)
+        self.proctor_overlay = ProctorOverlay(self)
 
         self._setup_window()
         self._build_toolbar()
         self._connect_signals()
+        self.proctor_overlay.move_to_default_position()
+        self.proctor_overlay.show()
 
     # ------------------------------------------------------------------
     # Setup
@@ -108,6 +113,7 @@ class ExamWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         self.browser.quit_url_reached.connect(self._on_quit_url_reached)
+        self.proctor_overlay.session_started.connect(self._on_proctor_session_started)
 
     # ------------------------------------------------------------------
     # Quit handlers
@@ -124,6 +130,12 @@ class ExamWindow(QMainWindow):
             self._force_close = True
             self.close()
 
+    def _on_proctor_session_started(self) -> None:
+        if self._exam_loaded:
+            return
+        self._exam_loaded = True
+        self.browser.load_exam_url()
+
     # ------------------------------------------------------------------
     # Qt overrides
     # ------------------------------------------------------------------
@@ -136,3 +148,7 @@ class ExamWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.proctor_overlay.keep_in_bounds()

@@ -15,7 +15,7 @@ a = Analysis(
     ["main.py"],
     pathex=[str(Path(".").resolve())],
     binaries=[],
-    datas=[("config.example.toml", ".")],
+    datas=[("config.example.toml", "."), ("assets", "assets")],
     hiddenimports=[
         "PySide6.QtWebEngineWidgets",
         "PySide6.QtWebEngineCore",

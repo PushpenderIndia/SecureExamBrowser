@@ -72,7 +72,7 @@ class SecureBrowser(QWebEngineView):
         self._attach_secure_page()
         self.setContextMenuPolicy(Qt.NoContextMenu)
         self.urlChanged.connect(self._on_url_changed)
-        self.setUrl(QUrl(self.config.start_url))
+        self.setUrl(QUrl("about:blank"))
 
     # ------------------------------------------------------------------
     # Setup helpers
@@ -89,6 +89,10 @@ class SecureBrowser(QWebEngineView):
     def _on_url_changed(self, url: QUrl) -> None:
         if self.quit_handler.is_quit_url(url.toString()):
             self.quit_url_reached.emit()
+
+    def load_exam_url(self) -> None:
+        """Load the configured exam URL once proctoring is ready."""
+        self.setUrl(QUrl(self.config.start_url))
 
     # ------------------------------------------------------------------
     # Overrides
