@@ -73,6 +73,13 @@ app = BUNDLE(
         "NSLocationAlwaysAndWhenInUseUsageDescription": (
             "WiFi network names are visible only with Location Services enabled."
         ),
+        # ── Required for video proctoring ────────────────────────────────
+        "NSCameraUsageDescription": (
+            "Camera access is required for video proctoring during exams."
+        ),
+        "NSMicrophoneUsageDescription": (
+            "Microphone access is required for video proctoring during exams."
+        ),
         # ── General app metadata ─────────────────────────────────────────
         "CFBundleShortVersionString": "1.0.0",
         "NSHighResolutionCapable": True,
