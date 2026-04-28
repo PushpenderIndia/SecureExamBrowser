@@ -15,6 +15,15 @@
     - Face Verification throughout the session
     - No Face Detection
 
+## TODO
+
+- [ ] Virtual Machine detection (Student boots clean VM, bypasses all OS hooks)
+- [ ] Screen recording detection (OBS/QuickTime captures without using Print Screen)
+- [ ] Clipboard monitoring (Paste-from-phone via cloud clipboard)
+- [ ] USB device detection (Phone-as-keyboard, external storage)
+- [ ] Second-instance prevention (Running two copies of the browser)
+- [ ] Anti-Software Cracking Strategies
+
 ## Installation
 
 - `Windows`: download [SecureExamBrowser.exe](https://github.com/PushpenderIndia/SecureExamBrowser/releases/latest/download/SecureExamBrowser.exe) and run it.

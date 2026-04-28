@@ -42,6 +42,7 @@ EXAM_FLAGS: int = (
     | DISABLE_FORCE_QUIT          # Cmd+Option+Esc dialog blocked
     | DISABLE_APPLE_MENU          # Apple menu inaccessible
     | DISABLE_SESSION_TERMINATION # Log Out / Restart blocked
+    | DISABLE_HIDE_APPLICATION    # Cmd+H hide blocked
 )
 
 

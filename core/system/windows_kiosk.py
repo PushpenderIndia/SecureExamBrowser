@@ -23,13 +23,17 @@ else:  # pragma: no cover - import safety on non-Windows platforms
 WH_KEYBOARD_LL = 13
 HC_ACTION = 0
 WM_KEYDOWN = 0x0100
+WM_KEYUP = 0x0101
 WM_SYSKEYDOWN = 0x0104
+WM_SYSKEYUP = 0x0105
 WM_QUIT = 0x0012
 VK_TAB = 0x09
+VK_SPACE = 0x20
 VK_ESCAPE = 0x1B
 VK_F4 = 0x73
 VK_LWIN = 0x5B
 VK_RWIN = 0x5C
+VK_APPS = 0x5D   # context-menu key
 VK_SNAPSHOT = 0x2C
 VK_CONTROL = 0x11
 VK_MENU = 0x12
@@ -130,7 +134,7 @@ class WindowsKioskMode:
         if n_code != HC_ACTION:
             return user32.CallNextHookEx(self._hook_id or 0, n_code, w_param, l_param)
 
-        if w_param not in (WM_KEYDOWN, WM_SYSKEYDOWN):
+        if w_param not in (WM_KEYDOWN, WM_SYSKEYDOWN, WM_KEYUP, WM_SYSKEYUP):
             return user32.CallNextHookEx(self._hook_id or 0, n_code, w_param, l_param)
 
         key_data = ctypes.cast(l_param, ctypes.POINTER(KBDLLHOOKSTRUCT)).contents
@@ -145,9 +149,9 @@ class WindowsKioskMode:
         ctrl_down = self._is_key_down(VK_CONTROL)
         shift_down = self._is_key_down(VK_SHIFT)
 
-        if vk_code in (VK_LWIN, VK_RWIN, VK_SNAPSHOT):
+        if vk_code in (VK_LWIN, VK_RWIN, VK_SNAPSHOT, VK_APPS):
             return True
-        if alt_down and vk_code in (VK_TAB, VK_ESCAPE, VK_F4):
+        if alt_down and vk_code in (VK_TAB, VK_ESCAPE, VK_F4, VK_SPACE):
             return True
         if ctrl_down and vk_code == VK_ESCAPE:
             return True
