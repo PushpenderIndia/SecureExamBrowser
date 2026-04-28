@@ -50,19 +50,23 @@
 
 ![Web Cam Advisory Modal](docs/webcam_advisory_modal.png)
 
-### 3. SecureExamBrowser opens your start exam 
+### 3. Web Cam Onboarding
+
+![Web Cam Onboarding](docs/webcam_onboarding.png)
+
+### 4. SecureExamBrowser opens your start exam 
 
 ![Start URL](docs/start_url.png)
 
-### 4. User can switch to another WiFi from the SEB itself
+### 5. User can switch to another WiFi from the SEB itself
 
 ![Change WiFi](docs/change_wifi.png)
 
-### 5. Quit Exam using Admin Password 
+### 6. Quit Exam using Admin Password 
 
 ![Quit Exam](docs/quit_exam.png)
 
-### 6. Moveable AI Web Cam Proctor 
+### 7. Moveable AI Web Cam Proctor 
 
 ![Cam Proctor - 1](docs/moveable_ai_cam_proctor_1.png)
 
