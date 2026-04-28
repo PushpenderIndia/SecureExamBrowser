@@ -8,6 +8,11 @@
 - Integrates Wi-Fi management helpers for supported platforms.
 - Terminates deny-listed remote desktop and remote support apps automatically.
 - Detects suspicious remote-access connections by known domains and ports.
+- Detect Multiple Screens
+- AI Web Cam Proctoring
+    - Multiple Face Detection
+    - Face Verification throughout the session
+    - No Face Detection
 
 ## Installation
 
