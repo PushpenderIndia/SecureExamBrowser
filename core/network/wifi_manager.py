@@ -290,16 +290,11 @@ class WiFiManager(QObject):
         if self._scan_worker and self._scan_worker.isRunning():
             return
 
-        # macOS: verify location services before spawning the thread
-        if sys.platform == "darwin" and not _macos_location_granted():
-            _macos_request_location(self._loc_mgr_holder)
-            self.scan_error.emit(_macos_location_error_msg())
-            return
-
         worker = _ScanWorker(self)
         worker.done.connect(self.scan_complete)
         worker.error.connect(self.scan_error)
         worker.finished.connect(worker.deleteLater)
+        worker.finished.connect(lambda: setattr(self, '_scan_worker', None))
         self._scan_worker = worker
         worker.start()
 
@@ -312,5 +307,6 @@ class WiFiManager(QObject):
         worker = _ConnectWorker(ssid, password)
         worker.done.connect(self.connect_result)
         worker.finished.connect(worker.deleteLater)
+        worker.finished.connect(lambda: setattr(self, '_connect_worker', None))
         self._connect_worker = worker
         worker.start()

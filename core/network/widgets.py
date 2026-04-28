@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QDialog,
@@ -76,8 +76,13 @@ class WiFiDialog(QDialog):
         self._manager.scan_complete.connect(self._on_scan_complete)
         self._manager.scan_error.connect(self._on_scan_error)
         self._manager.connect_result.connect(self._on_connect_result)
-        # Ensure location permission is requested before the first scan
         self._manager.request_location_auth()
+
+        self._auto_timer = QTimer(self)
+        self._auto_timer.setInterval(20_000)
+        self._auto_timer.timeout.connect(self._do_silent_scan)
+        self._auto_timer.start()
+
         self._do_scan()
 
     # ------------------------------------------------------------------
@@ -148,6 +153,9 @@ class WiFiDialog(QDialog):
         self._pw_row.setVisible(False)
         self._manager.scan()
 
+    def _do_silent_scan(self) -> None:
+        self._manager.scan()
+
     def _do_connect(self) -> None:
         row = self._list.currentRow()
         if not (0 <= row < len(self._networks)):
@@ -216,7 +224,7 @@ class WiFiDialog(QDialog):
     # ------------------------------------------------------------------
 
     def closeEvent(self, event) -> None:
-        # Disconnect to prevent stale signals reaching a closed dialog
+        self._auto_timer.stop()
         try:
             self._manager.scan_complete.disconnect(self._on_scan_complete)
             self._manager.scan_error.disconnect(self._on_scan_error)
