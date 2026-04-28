@@ -333,8 +333,8 @@ class ProctorClient {
     async startWebcam() {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: {
-                width: 640,
-                height: 480,
+                width: { ideal: 1280, max: 1920 },
+                height: { ideal: 720, max: 1080 },
                 facingMode: "user",
             },
             audio: false,
