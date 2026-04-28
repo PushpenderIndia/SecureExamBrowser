@@ -62,7 +62,7 @@ class ExamWindow(QMainWindow):
         self._setup_window()
         self._build_toolbar()
 
-        self.proctor_overlay = ProctorOverlay(self)
+        self.proctor_overlay = ProctorOverlay(self, config=config)
 
         self._connect_signals()
         self.browser.hide()

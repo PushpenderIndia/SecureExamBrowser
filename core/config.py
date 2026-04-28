@@ -13,6 +13,7 @@ class ExamConfig:
 
     # UI
     window_title: str = "Secure Exam Browser"
+    duration_minutes: int | None = None
 
     # Derived: host that the browser is allowed to stay on
     @property

@@ -461,8 +461,9 @@ class _PaginationDots(QWidget):
 class _LeftPane(QWidget):
     """Matches .left-pane  (logo + heading  |  test card + platform links)."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, config=None) -> None:
         super().__init__(parent)
+        self._config = config
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 20, 0)   # padding-right: 20px
         layout.setSpacing(0)
@@ -546,7 +547,9 @@ class _LeftPane(QWidget):
         title.setStyleSheet(
             f"color: {_TEXT}; font-size: 14px; font-weight: 600;"
         )
-        dur = QLabel("Test duration: 75 minutes")
+        dm = self._config.duration_minutes if self._config and self._config.duration_minutes else None
+        dur_text = f"Test duration: {dm} minutes" if dm else "Test duration: N/A"
+        dur = QLabel(dur_text)
         dur.setStyleSheet(f"color: {_MUTED}; font-size: 12px;")
         info.addWidget(title)
         info.addWidget(dur)
@@ -777,9 +780,10 @@ class IntroWidget(QWidget):
     quit_requested     = Signal()
     continue_requested = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, config=None) -> None:
         _load_fa_fonts()
         super().__init__(parent)
+        self._config = config
         self._build()
 
     # ── Qt overrides ──────────────────────────────────────────────────────────
@@ -810,7 +814,7 @@ class IntroWidget(QWidget):
         self._right_pane.quit_clicked.connect(self.quit_requested)
         self._right_pane.grant_access_clicked.connect(self._on_grant_access)
 
-        layout.addWidget(_LeftPane(self), 10)         # flex: 1
+        layout.addWidget(_LeftPane(self, config=self._config), 10)  # flex: 1
         layout.addWidget(self._right_pane, 12)        # flex: 1.2
 
         # Persistent overlay modal – sized to fill self in resizeEvent

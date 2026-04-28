@@ -68,6 +68,7 @@ def load_config(path: Path | str | None = None) -> ExamConfig:
             quit_password=exam["quit_password"],
             quit_url=exam.get("quit_url", ""),
             window_title=exam.get("window_title", "Secure Exam Browser"),
+            duration_minutes=exam.get("duration_minutes"),
         )
     except KeyError as exc:
         raise KeyError(f"Missing required key in [exam]: {exc}") from exc

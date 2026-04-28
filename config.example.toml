@@ -12,3 +12,6 @@ quit_url = "https://example.com/exam/done"
 
 # Title shown in the window / taskbar
 window_title = "Secure Exam Browser"
+
+# Duration shown on the intro screen (optional)
+# duration_minutes = 75

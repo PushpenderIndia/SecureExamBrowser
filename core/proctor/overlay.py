@@ -6,6 +6,7 @@ from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QFrame, QStackedWidget, QVBoxLayout, QWidget
 
+from ..config import ExamConfig
 from ..resources import resource_path
 from .intro import IntroWidget
 
@@ -87,8 +88,9 @@ class ProctorOverlay(QFrame):
     session_started = Signal()
     quit_requested = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, config: ExamConfig | None = None) -> None:
         super().__init__(parent)
+        self._config = config
         self._drag_offset: QPoint | None = None
         self._compact_size = QSize(400, 225)
         self._compact_mode = False
@@ -110,7 +112,7 @@ class ProctorOverlay(QFrame):
         self._stack = QStackedWidget(self)
 
         # Page 0 – native intro widget (appears instantly, no WebEngine needed)
-        self._intro = IntroWidget(self)
+        self._intro = IntroWidget(self, config=self._config)
         self._intro.quit_requested.connect(self.quit_requested)
         self._intro.continue_requested.connect(self._on_intro_continue)
 
