@@ -58,10 +58,12 @@ class ExamWindow(QMainWindow):
 
         self.browser = SecureBrowser(config, quit_handler)
         self.setCentralWidget(self.browser)
-        self.proctor_overlay = ProctorOverlay(self)
 
         self._setup_window()
         self._build_toolbar()
+
+        self.proctor_overlay = ProctorOverlay(self)
+
         self._connect_signals()
         self.browser.hide()
         self.proctor_overlay.show()
@@ -115,6 +117,7 @@ class ExamWindow(QMainWindow):
     def _connect_signals(self) -> None:
         self.browser.quit_url_reached.connect(self._on_quit_url_reached)
         self.proctor_overlay.session_started.connect(self._on_proctor_session_started)
+        self.proctor_overlay.quit_requested.connect(self._on_quit_app_requested)
 
     # ------------------------------------------------------------------
     # Quit handlers
@@ -122,6 +125,11 @@ class ExamWindow(QMainWindow):
 
     def _on_quit_url_reached(self) -> None:
         """Called when the exam platform redirects to the quit URL."""
+        self._force_close = True
+        self.close()
+
+    def _on_quit_app_requested(self) -> None:
+        """Called when the student clicks Quit App on the intro screen."""
         self._force_close = True
         self.close()
 
@@ -154,4 +162,5 @@ class ExamWindow(QMainWindow):
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        self.proctor_overlay.keep_in_bounds()
+        if hasattr(self, "proctor_overlay"):
+            self.proctor_overlay.keep_in_bounds()

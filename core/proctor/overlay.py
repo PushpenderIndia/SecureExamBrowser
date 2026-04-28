@@ -4,9 +4,10 @@ from PySide6.QtCore import QObject, QPoint, QUrl, Qt, Signal, QSize, Slot
 from PySide6.QtWebChannel import QWebChannel
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QStackedWidget, QVBoxLayout, QWidget
 
 from ..resources import resource_path
+from .intro import IntroWidget
 
 
 class ProctorPage(QWebEnginePage):
@@ -54,6 +55,7 @@ class ProctorBridge(QObject):
     """Bridge events from the embedded proctor page into Qt."""
 
     sessionStarted = Signal()
+    quitRequested = Signal()
     dragStarted = Signal(int, int)
     dragMoved = Signal(int, int)
     dragEnded = Signal()
@@ -61,6 +63,10 @@ class ProctorBridge(QObject):
     @Slot()
     def startSession(self) -> None:
         self.sessionStarted.emit()
+
+    @Slot()
+    def quitApp(self) -> None:
+        self.quitRequested.emit()
 
     @Slot(int, int)
     def startDrag(self, screen_x: int, screen_y: int) -> None:
@@ -79,6 +85,7 @@ class ProctorOverlay(QFrame):
     """Movable overlay window shown above the exam browser."""
 
     session_started = Signal()
+    quit_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -100,19 +107,39 @@ class ProctorOverlay(QFrame):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
+        self._stack = QStackedWidget(self)
+
+        # Page 0 – native intro widget (appears instantly, no WebEngine needed)
+        self._intro = IntroWidget(self)
+        self._intro.quit_requested.connect(self.quit_requested)
+        self._intro.continue_requested.connect(self._on_intro_continue)
+
+        # Page 1 – proctoring WebView (starts loading index.html immediately
+        #           in the background so models are warm by the time the user
+        #           finishes the intro)
         self.web_view = ProctorWebView(self)
         self.web_view.load_proctor_client()
 
-        layout.addWidget(self.web_view, 1)
+        self._stack.addWidget(self._intro)    # index 0
+        self._stack.addWidget(self.web_view)  # index 1
+        self._stack.setCurrentIndex(0)
+
+        layout.addWidget(self._stack, 1)
 
     def _configure_bridge(self) -> None:
         channel = QWebChannel(self.web_view.page())
         channel.registerObject("proctorBridge", self._bridge)
         self.web_view.page().setWebChannel(channel)
         self._bridge.sessionStarted.connect(self.session_started)
+        self._bridge.quitRequested.connect(self.quit_requested)
         self._bridge.dragStarted.connect(self._start_drag)
         self._bridge.dragMoved.connect(self._drag_to)
         self._bridge.dragEnded.connect(self._end_drag)
+
+    @Slot()
+    def _on_intro_continue(self) -> None:
+        """Switch from the native intro to the proctoring WebView."""
+        self._stack.setCurrentIndex(1)
 
     def _apply_styles(self) -> None:
         self.setStyleSheet(
