@@ -22,14 +22,14 @@
 - `Linux`: download [SecureExamBrowser-linux](https://github.com/PushpenderIndia/SecureExamBrowser/releases/latest/download/SecureExamBrowser-linux), run `chmod +x SecureExamBrowser-linux`, then start it.
 
 - `macOS (Apple Silicon)`: 
-    - download [SecureExamBrowser-macos-arm64.zip](https://github.com/PushpenderIndia/SecureExamBrowser/releases/latest/download/SecureExamBrowser-macos-arm64.zip)
-    - unzip it
-    - then run `xattr -dr com.apple.quarantine SecureExamBrowser.app` before opening it because the app is not signed.
+    - Download [SecureExamBrowser-macos-arm64.zip](https://github.com/PushpenderIndia/SecureExamBrowser/releases/latest/download/SecureExamBrowser-macos-arm64.zip)
+    - Unzip it
+    - Run `xattr -dr com.apple.quarantine SecureExamBrowser.app` before opening it because the app is not signed.
 
 - `macOS (Intel)`: 
-    - download [SecureExamBrowser-macos-intel.zip](https://github.com/PushpenderIndia/SecureExamBrowser/releases/latest/download/SecureExamBrowser-macos-intel.zip)
-    - unzip it
-    - then run `xattr -dr com.apple.quarantine SecureExamBrowser.app` before opening it because the app is not signed.
+    - Download [SecureExamBrowser-macos-intel.zip](https://github.com/PushpenderIndia/SecureExamBrowser/releases/latest/download/SecureExamBrowser-macos-intel.zip)
+    - Unzip it
+    - Run `xattr -dr com.apple.quarantine SecureExamBrowser.app` before opening it because the app is not signed.
 
 ## Screenshots
 
