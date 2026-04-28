@@ -3,10 +3,11 @@
 ## Features
 
 - Launches a locked-down exam browser window with a configurable start URL.
+- Quits the App, on visting end exam link
 - Enforces kiosk-style system guard behavior during the exam session.
 - Monitors internet connectivity throughout the session.
-- Integrates Wi-Fi management helpers for supported platforms.
-- Terminates deny-listed remote desktop and remote support apps automatically.
+- Integrated Wi-Fi management so that candidate don't have to quit the app for internet switch/connectivity
+- Terminates deny-listed remote desktop (e.g. AnyDesk, TeamViewer, etc) and remote support apps (Whatsapp, Slack etc) automatically.
 - Detects suspicious remote-access connections by known domains and ports.
 - Detect Multiple Screens
 - AI Web Cam Proctoring
