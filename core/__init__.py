@@ -1,7 +1,7 @@
 from .app import ExamApp
 from .config import ExamConfig
-from .loader import load_config
 from .network import NetworkMonitor, WiFiManager
+from .seb import load_seb_file
 from .system import RemoteAccessMonitor, SystemGuard
 
 __all__ = [
@@ -11,5 +11,5 @@ __all__ = [
     "RemoteAccessMonitor",
     "SystemGuard",
     "WiFiManager",
-    "load_config",
+    "load_seb_file",
 ]

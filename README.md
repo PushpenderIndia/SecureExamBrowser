@@ -54,9 +54,9 @@
 
 ![Web Cam Onboarding](docs/webcam_onboarding.png)
 
-### 4. SecureExamBrowser opens your start exam 
+### 4. SecureExamBrowser opens your start exam with AI Web Cam Proctor
 
-![Start URL](docs/start_url.png)
+![Cam Proctor - 1](docs/moveable_ai_cam_proctor_1.png)
 
 ### 5. User can switch to another WiFi from the SEB itself
 
@@ -67,7 +67,5 @@
 ![Quit Exam](docs/quit_exam.png)
 
 ### 7. Moveable AI Web Cam Proctor 
-
-![Cam Proctor - 1](docs/moveable_ai_cam_proctor_1.png)
 
 ![Cam Proctor - 2](docs/moveable_ai_cam_proctor_2.png)

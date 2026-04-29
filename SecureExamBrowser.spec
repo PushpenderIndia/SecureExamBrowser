@@ -15,7 +15,7 @@ a = Analysis(
     ["main.py"],
     pathex=[str(Path(".").resolve())],
     binaries=[],
-    datas=[("config.example.toml", "."), ("assets", "assets")],
+    datas=[("assets", "assets")],
     hiddenimports=[
         "PySide6.QtWebEngineWidgets",
         "PySide6.QtWebEngineCore",
@@ -44,7 +44,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
-    argv_emulation=False,
+    argv_emulation=True,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
@@ -85,5 +85,27 @@ app = BUNDLE(
         "NSHighResolutionCapable": True,
         "NSPrincipalClass": "NSApplication",
         "LSBackgroundOnly": False,
+        # ── .seb file association ────────────────────────────────────────
+        "CFBundleDocumentTypes": [
+            {
+                "CFBundleTypeName": "Secure Exam Browser Config",
+                "CFBundleTypeRole": "Viewer",
+                "CFBundleTypeExtensions": ["sebexam"],
+                "CFBundleTypeMIMETypes": ["application/x-sebexam"],
+                "LSHandlerRank": "Owner",
+                "LSItemContentTypes": ["com.codechef.sebexam-config"],
+            }
+        ],
+        "UTImportedTypeDeclarations": [
+            {
+                "UTTypeIdentifier": "com.codechef.sebexam-config",
+                "UTTypeDescription": "Secure Exam Browser Config",
+                "UTTypeConformsTo": ["public.data", "public.content"],
+                "UTTypeTagSpecification": {
+                    "public.filename-extension": ["sebexam"],
+                    "public.mime-type": "application/x-sebexam",
+                },
+            }
+        ],
     },
 )

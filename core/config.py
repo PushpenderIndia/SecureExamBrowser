@@ -1,21 +1,15 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from urllib.parse import urlparse
 
 
 @dataclass
 class ExamConfig:
-    # Required
     start_url: str
-    quit_password: str
-
-    # Optional — navigate to this URL to auto-quit without a password prompt
     quit_url: str = ""
-
-    # UI
     window_title: str = "Secure Exam Browser"
     duration_minutes: int | None = None
+    hashed_quit_password: str = ""
 
-    # Derived: host that the browser is allowed to stay on
     @property
     def allowed_host(self) -> str:
         return urlparse(self.start_url).netloc
