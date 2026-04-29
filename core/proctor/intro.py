@@ -19,7 +19,7 @@ Public surface
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QColor, QCursor, QFont, QFontDatabase, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QFrame,
@@ -52,6 +52,7 @@ class _FA:
     VIDEO               = 0xF03D
     DESKTOP             = 0xF108
     ARROW_UP_FROM_BRAC  = 0xE09A
+    SERVER              = 0xF233   # virtual-machine / hardware check
     CHECK_CIRCLE        = 0xF058   # success checkmark (solid)
     CHEVRON_DOWN        = 0xF078
     CHEVRON_UP          = 0xF077
@@ -108,8 +109,6 @@ def _icon(
     family = _FA_SOLID if solid else _FA_REGULAR
     if family:
         font = QFont(family, pt_size)
-        # Both FA files share the family name "Font Awesome 6 Free"; weight
-        # is the only way Qt can select the correct variant.
         font.setWeight(QFont.Weight.Black if solid else QFont.Weight.Normal)
         lbl.setFont(font)
     lbl.setStyleSheet(f"color: {color};")
@@ -122,12 +121,7 @@ def _icon(
 # ── Webcam guidelines modal ───────────────────────────────────────────────────
 
 class _GuidelineCard(QWidget):
-    """
-    Single cell in the 2×2 guidelines grid  (matches .guideline-item in CSS).
-
-    Layout:  illustration div (100 px tall icon)
-             caption row  (fa-regular circle-check  +  text)
-    """
+    """Single cell in the 2×2 guidelines grid."""
 
     def __init__(self, icon_cp: int, caption: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -140,7 +134,6 @@ class _GuidelineCard(QWidget):
         layout.addWidget(self._caption_row(caption))
 
     def _illustration(self, icon_cp: int) -> QWidget:
-        """100 px tall container with the centred large icon."""
         container = QWidget()
         container.setFixedHeight(100)
         hl = QHBoxLayout(container)
@@ -150,7 +143,6 @@ class _GuidelineCard(QWidget):
         return container
 
     def _caption_row(self, caption: str) -> QWidget:
-        """fa-regular fa-circle-check  +  caption text, centred."""
         row = QWidget()
         hl = QHBoxLayout(row)
         hl.setContentsMargins(0, 0, 0, 0)
@@ -164,17 +156,7 @@ class _GuidelineCard(QWidget):
 
 
 class WebcamGuidelinesModal(QWidget):
-    """
-    Full-overlay webcam best-practice panel (matches the #webcam-modal div).
-
-    Lives as a persistent child of IntroWidget, resized to fill it entirely.
-    Uses paintEvent for the semi-transparent dark backdrop so it works
-    reliably as a non-top-level widget.
-
-    Signals
-    -------
-    accepted:  User clicked "Continue".
-    """
+    """Full-overlay webcam best-practice panel."""
 
     accepted = Signal()
 
@@ -190,14 +172,10 @@ class WebcamGuidelinesModal(QWidget):
         self._build()
         self.hide()
 
-    # ── Qt overrides ──────────────────────────────────────────────────────────
-
     def paintEvent(self, event) -> None:  # noqa: N802
         painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(13, 17, 23, 179))   # rgba(13,17,23,0.7)
+        painter.fillRect(self.rect(), QColor(13, 17, 23, 179))
         painter.end()
-
-    # ── UI ────────────────────────────────────────────────────────────────────
 
     def _build(self) -> None:
         outer = QVBoxLayout(self)
@@ -230,14 +208,10 @@ class WebcamGuidelinesModal(QWidget):
         w.setStyleSheet("border-bottom: 1px solid rgba(255,255,255,26);")
         hl = QHBoxLayout(w)
         hl.setContentsMargins(24, 20, 24, 20)
-
         lbl = QLabel("For best results make sure")
-        lbl.setStyleSheet(
-            f"color: {_TEXT}; font-size: 16px; font-weight: 600; border: none;"
-        )
+        lbl.setStyleSheet(f"color: {_TEXT}; font-size: 16px; font-weight: 600; border: none;")
         hl.addWidget(lbl)
         hl.addStretch()
-
         close_btn = QPushButton("✕")
         close_btn.setFixedSize(32, 32)
         close_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
@@ -298,35 +272,57 @@ class WebcamGuidelinesModal(QWidget):
         self.accepted.emit()
 
 
+# ── Clickable header helper ───────────────────────────────────────────────────
+
+class _ClickableHeader(QWidget):
+    """Transparent row widget that emits ``clicked`` on any mouse press."""
+
+    clicked = Signal()
+
+    def mousePressEvent(self, event) -> None:  # noqa: N802
+        super().mousePressEvent(event)
+        self.clicked.emit()
+
+
 # ── Accordion row ─────────────────────────────────────────────────────────────
 
 class _AccordionRow(QFrame):
     """
-    Single permission item (matches .accordion-item in CSS).
+    Single permission item with a click-to-toggle accordion body.
 
     Parameters
     ----------
-    icon_cp:   Font Awesome solid codepoint for the left icon.
-    label:     Row title text.
-    checked:   Show a green fa-check-circle after the title.
-    expanded:  Show the body panel and use fa-chevron-up instead of down.
-    body_text: Text inside the expanded body (ignored when expanded=False).
+    icon_cp     : Font Awesome solid codepoint for the left icon.
+    label       : Row title text.
+    body_text   : Description shown when the row is expanded.
+    checked     : Show a green fa-check-circle after the title.
+    expanded    : Start in the open (expanded) state.
+    live_check  : Show a live status badge next to the title.
+    grant_access: Add a "Grant Access" button inside the body.
     """
+
+    opened = Signal()   # fired whenever this row transitions to expanded
 
     def __init__(
         self,
         icon_cp: int,
         label: str,
         *,
+        body_text: str = "",
         checked: bool = False,
         expanded: bool = False,
-        body_text: str = "",
         live_check: bool = False,
+        grant_access: bool = False,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        self._expanded = expanded
+        self._chevron: QLabel | None = None
+        self._body_panel: QWidget | None = None
         self.grant_btn: QPushButton | None = None
         self._status_lbl: QLabel | None = None
+        self._anim: QPropertyAnimation | None = None
+
         self.setObjectName("accordionRow")
         self.setStyleSheet("""
             QFrame#accordionRow {
@@ -335,15 +331,26 @@ class _AccordionRow(QFrame):
                 border-radius: 8px;
             }
         """)
+
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        root.addWidget(self._header(icon_cp, label, checked, expanded, live_check))
-        if expanded and body_text:
-            root.addWidget(self._body(body_text))
+
+        hdr = self._build_header(icon_cp, label, checked, live_check)
+        hdr.clicked.connect(self._toggle)
+        root.addWidget(hdr)
+
+        if body_text:
+            self._body_panel = self._build_body(body_text, grant_access)
+            # Keep the panel in the layout always; height is the only thing
+            # that changes.  Rows that start collapsed get max-height=0.
+            self._body_panel.setMaximumHeight(0 if not expanded else 16777215)
+            root.addWidget(self._body_panel)
+
+    # ── Public ────────────────────────────────────────────────────────────────
 
     def set_status(self, result: CheckResult) -> None:
-        """Update the live-check status badge (only meaningful when live_check=True)."""
+        """Update the live-check status badge."""
         if self._status_lbl is None:
             return
         if result.status is CheckStatus.PASSED:
@@ -358,20 +365,74 @@ class _AccordionRow(QFrame):
             )
         else:
             self._status_lbl.setText("Checking…")
-            self._status_lbl.setStyleSheet(
-                f"color: {_MUTED}; font-size: 12px;"
-            )
+            self._status_lbl.setStyleSheet(f"color: {_MUTED}; font-size: 12px;")
         if result.message:
             self._status_lbl.setToolTip(result.message)
 
-    # ── row sections ──────────────────────────────────────────────────────────
+    # ── Toggle / collapse ─────────────────────────────────────────────────────
 
-    def _header(
-        self, icon_cp: int, label: str, checked: bool, expanded: bool,
-        live_check: bool = False,
-    ) -> QWidget:
-        """Matches .accordion-header  (icon + title [+ check]  |  chevron)."""
-        hdr = QWidget()
+    def collapse(self) -> None:
+        """Close this row unconditionally (used by the exclusive-open logic)."""
+        if not self._expanded:
+            return
+        self._expanded = False
+        if self._chevron is not None:
+            self._chevron.setText(chr(_FA.CHEVRON_DOWN))
+        self._animate_body(expanding=False)
+
+    def _toggle(self) -> None:
+        if self._body_panel is None:
+            return
+        self._expanded = not self._expanded
+        if self._chevron is not None:
+            self._chevron.setText(
+                chr(_FA.CHEVRON_UP if self._expanded else _FA.CHEVRON_DOWN)
+            )
+        self._animate_body(expanding=self._expanded)
+        if self._expanded:
+            self.opened.emit()
+
+    def _animate_body(self, expanding: bool) -> None:
+        panel = self._body_panel
+        if panel is None:
+            return
+
+        # Stop any in-flight animation at its current position
+        if self._anim is not None:
+            self._anim.stop()
+
+        if expanding:
+            # Measure natural height with max-height unconstrained, then
+            # reset to 0 so the animation starts from the top.
+            panel.setMaximumHeight(16777215)
+            natural_h = panel.sizeHint().height()
+            panel.setMaximumHeight(0)
+            start_h, end_h = 0, natural_h
+        else:
+            # Collapse from wherever the panel currently sits (handles mid-
+            # animation reversal gracefully).
+            start_h = panel.height() or panel.sizeHint().height()
+            end_h = 0
+
+        self._anim = QPropertyAnimation(panel, b"maximumHeight", self)
+        self._anim.setDuration(250)
+        self._anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self._anim.setStartValue(start_h)
+        self._anim.setEndValue(end_h)
+
+        if expanding:
+            # Remove the cap once fully open so the body can reflow freely.
+            self._anim.finished.connect(lambda: panel.setMaximumHeight(16777215))
+
+        self._anim.start()
+
+    # ── Row sections ──────────────────────────────────────────────────────────
+
+    def _build_header(
+        self, icon_cp: int, label: str, checked: bool, live_check: bool
+    ) -> _ClickableHeader:
+        hdr = _ClickableHeader()
+        hdr.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         hl = QHBoxLayout(hdr)
         hl.setContentsMargins(20, 16, 20, 16)
         hl.setSpacing(0)
@@ -397,43 +458,59 @@ class _AccordionRow(QFrame):
             hl.addWidget(self._status_lbl)
 
         hl.addStretch()
-        hl.addWidget(
-            _icon(_FA.CHEVRON_UP if expanded else _FA.CHEVRON_DOWN, 14, color=_MUTED)
+
+        self._chevron = _icon(
+            _FA.CHEVRON_UP if self._expanded else _FA.CHEVRON_DOWN,
+            14, color=_MUTED,
         )
+        hl.addWidget(self._chevron)
         return hdr
 
-    def _body(self, body_text: str) -> QWidget:
-        """Matches .accordion-body  (description + Grant Access button)."""
-        body = QWidget()
-        vl = QVBoxLayout(body)
-        vl.setContentsMargins(52, 0, 20, 20)   # 52 px left matches CSS
-        vl.setSpacing(16)
+    def _build_body(self, body_text: str, grant_access: bool) -> QWidget:
+        wrapper = QWidget()
+        vl = QVBoxLayout(wrapper)
+        vl.setContentsMargins(0, 0, 0, 0)
+        vl.setSpacing(0)
+
+        # Thin separator line between header and body
+        sep = QFrame()
+        sep.setFixedHeight(1)
+        sep.setStyleSheet("background: rgba(255,255,255,13); border: none;")
+        vl.addWidget(sep)
+
+        content = QWidget()
+        cl = QVBoxLayout(content)
+        cl.setContentsMargins(52, 14, 20, 18)
+        cl.setSpacing(14)
 
         desc = QLabel(body_text)
         desc.setWordWrap(True)
         desc.setStyleSheet(f"color: {_MUTED}; font-size: 13px; line-height: 1.5;")
-        vl.addWidget(desc)
+        cl.addWidget(desc)
 
-        self.grant_btn = QPushButton("Grant Access")
-        self.grant_btn.setFixedHeight(38)
-        self.grant_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.grant_btn.setSizePolicy(
-            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
-        )
-        self.grant_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {_GREEN};
-                color: #000000;
-                border: none;
-                border-radius: 6px;
-                padding: 0 20px;
-                font-size: 14px;
-                font-weight: 600;
-            }}
-            QPushButton:hover {{ background: #00c853; }}
-        """)
-        vl.addWidget(self.grant_btn, alignment=Qt.AlignmentFlag.AlignLeft)
-        return body
+        if grant_access:
+            self.grant_btn = QPushButton("Grant Access")
+            self.grant_btn.setFixedHeight(38)
+            self.grant_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            self.grant_btn.setSizePolicy(
+                QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+            )
+            self.grant_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {_GREEN};
+                    color: #000000;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 0 20px;
+                    font-size: 14px;
+                    font-weight: 600;
+                }}
+                QPushButton:hover {{ background: #00c853; }}
+            """)
+            cl.addWidget(self.grant_btn, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        vl.addWidget(content)
+        return wrapper
 
 
 # ── Pagination dots ───────────────────────────────────────────────────────────
@@ -465,27 +542,22 @@ class _LeftPane(QWidget):
         super().__init__(parent)
         self._config = config
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 20, 0)   # padding-right: 20px
+        layout.setContentsMargins(0, 0, 20, 0)
         layout.setSpacing(0)
 
         layout.addWidget(self._logo())
         layout.addSpacing(16)
         layout.addWidget(self._heading())
-        layout.addStretch()                       # justify-content: space-between
+        layout.addStretch()
         layout.addWidget(self._test_card())
         layout.addSpacing(24)
         layout.addWidget(self._platform_links())
 
-    # ── builders ──────────────────────────────────────────────────────────────
-
     def _logo(self) -> QLabel:
-        """Matches .avatar  (240 × 75, left-aligned, transparent bg)."""
         lbl = QLabel()
         lbl.setFixedHeight(75)
         lbl.setMaximumWidth(240)
-        lbl.setAlignment(
-            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
-        )
+        lbl.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         pix = QPixmap(str(resource_path("assets", "proctor", "images", "logo.png")))
         if not pix.isNull():
             lbl.setPixmap(
@@ -493,13 +565,10 @@ class _LeftPane(QWidget):
             )
         else:
             lbl.setText("CodeChef")
-            lbl.setStyleSheet(
-                f"color: {_TEXT}; font-size: 22px; font-weight: 700;"
-            )
+            lbl.setStyleSheet(f"color: {_TEXT}; font-size: 22px; font-weight: 700;")
         return lbl
 
     def _heading(self) -> QLabel:
-        """Matches  h1  (40 px, 700 weight, max-width 420 px)."""
         lbl = QLabel(
             "Here are few important things to know before taking the test"
         )
@@ -511,7 +580,6 @@ class _LeftPane(QWidget):
         return lbl
 
     def _test_card(self) -> QFrame:
-        """Matches .test-card."""
         card = QFrame()
         card.setObjectName("testCard")
         card.setMaximumWidth(400)
@@ -528,9 +596,7 @@ class _LeftPane(QWidget):
 
         logo_lbl = QLabel()
         logo_lbl.setFixedSize(36, 36)
-        pix = QPixmap(
-            str(resource_path("assets", "proctor", "images", "logo1.png"))
-        )
+        pix = QPixmap(str(resource_path("assets", "proctor", "images", "logo1.png")))
         if not pix.isNull():
             logo_lbl.setPixmap(
                 pix.scaled(
@@ -544,9 +610,7 @@ class _LeftPane(QWidget):
         info = QVBoxLayout()
         info.setSpacing(4)
         title = QLabel("CodeChef Desktop App Test")
-        title.setStyleSheet(
-            f"color: {_TEXT}; font-size: 14px; font-weight: 600;"
-        )
+        title.setStyleSheet(f"color: {_TEXT}; font-size: 14px; font-weight: 600;")
         dm = self._config.duration_minutes if self._config and self._config.duration_minutes else None
         dur_text = f"Test duration: {dm} minutes" if dm else "Test duration: N/A"
         dur = QLabel(dur_text)
@@ -558,7 +622,6 @@ class _LeftPane(QWidget):
         return card
 
     def _platform_links(self) -> QWidget:
-        """Matches .platform-links."""
         w = QWidget()
         vl = QVBoxLayout(w)
         vl.setContentsMargins(0, 0, 0, 0)
@@ -591,36 +654,69 @@ class _RightPane(QWidget):
 
     Signals
     -------
-    grant_access_clicked:  User clicked the "Grant Access" button.
+    grant_access_clicked:  User clicked "Grant Access".
     quit_clicked:          User clicked "Quit App".
     """
 
     grant_access_clicked = Signal()
     quit_clicked = Signal()
 
-    _ACCORDION_ROWS = [
+    _ACCORDION_ROWS: list[dict] = [
         dict(
             icon_cp=_FA.BORDER_ALL,
-            label="Close additional applications",
+            label="Close Additional Applications",
+            body_text=(
+                "Before starting, close all other open applications — including "
+                "other browsers, screen-sharing tools, and communication apps. "
+                "This prevents interruptions and ensures exam integrity."
+            ),
             checked=True,
         ),
         dict(
             icon_cp=_FA.VIDEO,
             label="Allow Webcam Access",
-            expanded=True,
             body_text=(
-                "This helps me verify it's you taking the test — just like in an "
-                "in-person exam. Don't worry, your privacy is respected, and access "
-                "is only for the test duration."
+                "This helps verify it's you taking the test, just like an "
+                "in-person exam. Webcam access is only active during the exam "
+                "duration and your privacy is fully respected."
+            ),
+            expanded=True,
+            grant_access=True,
+        ),
+        dict(
+            icon_cp=_FA.DESKTOP,
+            label="Check for Multiple Monitors",
+            body_text=(
+                "Only a single display is permitted during this exam. Please "
+                "disconnect any additional monitors before proceeding. "
+                "The status badge above updates automatically."
+            ),
+            live_check=True,
+        ),
+        dict(
+            icon_cp=_FA.ARROW_UP_FROM_BRAC,
+            label="Allow Screen Sharing",
+            body_text=(
+                "Screen sharing lets the proctoring system verify your activity "
+                "during the exam. No recordings are stored after your session ends."
             ),
         ),
-        dict(icon_cp=_FA.DESKTOP, label="Check for Multiple Monitors", live_check=True),
-        dict(icon_cp=_FA.ARROW_UP_FROM_BRAC, label="Allow Screen Sharing"),
+        dict(
+            icon_cp=_FA.SERVER,
+            label="Virtual Machine Check",
+            body_text=(
+                "Running the exam inside a virtual machine or emulated environment "
+                "is not permitted. Your device has been scanned and verified as "
+                "native hardware."
+            ),
+            live_check=True,
+        ),
     ]
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._screen_row: _AccordionRow | None = None
+        self._vm_row: _AccordionRow | None = None
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -631,19 +727,26 @@ class _RightPane(QWidget):
         layout.addSpacing(24)
         layout.addWidget(self._bottom_controls())
 
-    # ── builders ──────────────────────────────────────────────────────────────
+    # ── Live-check result setters ──────────────────────────────────────────────
+
+    def set_screen_check_result(self, result: CheckResult) -> None:
+        if self._screen_row is not None:
+            self._screen_row.set_status(result)
+
+    def set_vm_check_result(self, result: CheckResult) -> None:
+        if self._vm_row is not None:
+            self._vm_row.set_status(result)
+
+    # ── Builders ──────────────────────────────────────────────────────────────
 
     def _top_bar(self) -> QWidget:
-        """Matches .top-bar  (justify-content: flex-end → sun + lang both on right)."""
         bar = QWidget()
         hl = QHBoxLayout(bar)
         hl.setContentsMargins(0, 0, 0, 0)
-        hl.setSpacing(16)   # gap: 16px
-
-        hl.addStretch()     # push everything to the right end
+        hl.setSpacing(16)
+        hl.addStretch()
         hl.addWidget(_icon(_FA.SUN, 16, solid=False, color=_MUTED))
 
-        # language selector widget
         lang = QFrame()
         lang.setObjectName("langSelector")
         lang.setStyleSheet(f"""
@@ -664,7 +767,6 @@ class _RightPane(QWidget):
         return bar
 
     def _permissions_card(self) -> QFrame:
-        """Matches .permissions-container."""
         card = QFrame()
         card.setObjectName("permCard")
         card.setStyleSheet("""
@@ -679,9 +781,7 @@ class _RightPane(QWidget):
         cl.setSpacing(0)
 
         title = QLabel("Permissions")
-        title.setStyleSheet(
-            f"color: {_TEXT}; font-size: 24px; font-weight: 600;"
-        )
+        title.setStyleSheet(f"color: {_TEXT}; font-size: 24px; font-weight: 600;")
         cl.addWidget(title)
         cl.addSpacing(12)
 
@@ -702,22 +802,31 @@ class _RightPane(QWidget):
         container = QWidget()
         vl = QVBoxLayout(container)
         vl.setContentsMargins(0, 0, 0, 0)
-        vl.setSpacing(16)
+        vl.setSpacing(12)
+
+        rows: list[_AccordionRow] = []
         for kwargs in self._ACCORDION_ROWS:
             row = _AccordionRow(**kwargs, parent=container)
+
             if row.grant_btn is not None:
                 row.grant_btn.clicked.connect(self.grant_access_clicked)
-            if kwargs.get("live_check"):
+
+            if kwargs.get("label") == "Check for Multiple Monitors":
                 self._screen_row = row
+            elif kwargs.get("label") == "Virtual Machine Check":
+                self._vm_row = row
+
             vl.addWidget(row)
+            rows.append(row)
+
+        # Exclusive open: when any row opens, collapse all the others.
+        for row in rows:
+            others = [r for r in rows if r is not row]
+            row.opened.connect(lambda _=None, peers=others: [r.collapse() for r in peers])
+
         return container
 
-    def set_screen_check_result(self, result: CheckResult) -> None:
-        if self._screen_row is not None:
-            self._screen_row.set_status(result)
-
     def _bottom_controls(self) -> QWidget:
-        """Matches .bottom-controls  (pagination  |  Back + Start Test)."""
         w = QWidget()
         hl = QHBoxLayout(w)
         hl.setContentsMargins(20, 0, 20, 0)
@@ -768,9 +877,6 @@ class IntroWidget(QWidget):
     """
     Native PySide6 intro/permissions screen.
 
-    Visually identical to intro.html.  Appears instantly on launch (no WebEngine
-    overhead) while index.html and its ML models pre-load in the background.
-
     Signals
     -------
     quit_requested:     "Quit App" clicked — close without a password prompt.
@@ -786,13 +892,9 @@ class IntroWidget(QWidget):
         self._config = config
         self._build()
 
-    # ── Qt overrides ──────────────────────────────────────────────────────────
-
     def resizeEvent(self, event) -> None:  # noqa: N802
         super().resizeEvent(event)
         self._modal.resize(self.size())
-
-    # ── UI ────────────────────────────────────────────────────────────────────
 
     def _build(self) -> None:
         self.setStyleSheet("""
@@ -814,23 +916,31 @@ class IntroWidget(QWidget):
         self._right_pane.quit_clicked.connect(self.quit_requested)
         self._right_pane.grant_access_clicked.connect(self._on_grant_access)
 
-        layout.addWidget(_LeftPane(self, config=self._config), 10)  # flex: 1
-        layout.addWidget(self._right_pane, 12)        # flex: 1.2
+        layout.addWidget(_LeftPane(self, config=self._config), 10)
+        layout.addWidget(self._right_pane, 12)
 
-        # Persistent overlay modal – sized to fill self in resizeEvent
+        # Persistent overlay modal
         self._modal = WebcamGuidelinesModal(self)
         self._modal.accepted.connect(self.continue_requested)
 
-        # Screen monitor – run initial check then watch for changes
+        # Screen monitor — run initial check then watch for changes
         self._screen_monitor = ScreenMonitor(self)
         self._right_pane.set_screen_check_result(self._screen_monitor.check())
         self._screen_monitor.result_changed.connect(self._on_screen_check_changed)
+
+        # VM check — already cleared by app.py before the window opened;
+        # show the result after a short delay so it feels like a real scan.
+        QTimer.singleShot(900, self._complete_vm_check)
 
     @Slot(object)
     def _on_screen_check_changed(self, result: CheckResult) -> None:
         self._right_pane.set_screen_check_result(result)
 
-    # ── Slot ──────────────────────────────────────────────────────────────────
+    def _complete_vm_check(self) -> None:
+        """Mark the VM row as passed (the real scan already ran in app.py)."""
+        self._right_pane.set_vm_check_result(
+            CheckResult(CheckStatus.PASSED, "No virtual machine detected")
+        )
 
     def _on_grant_access(self) -> None:
         self._modal.resize(self.size())

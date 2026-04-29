@@ -15,15 +15,15 @@
     - Face Verification throughout the session
     - No Face Detection
 - Auto Exit App, If Duration of exam is 75 min, then after the start time of exam, exactly after 75 min, app will auto close
+- Virtual Machine detection (Student cannot boot the software in a VM, which can bypass all OS hooks)
 - Shows Current Datetime & Battery Percentage in Tool Bar
+- Second-instance prevention (Running two copies of the browser)
 
 ## TODO
 
-- [ ] Virtual Machine detection (Student boots clean VM, bypasses all OS hooks)
 - [ ] Screen recording detection (OBS/QuickTime captures without using Print Screen)
 - [ ] Clipboard monitoring (Paste-from-phone via cloud clipboard)
 - [ ] USB device detection (Phone-as-keyboard, external storage)
-- [ ] Second-instance prevention (Running two copies of the browser)
 - [ ] Anti-Software Cracking Strategies
 
 ## Installation
