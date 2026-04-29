@@ -40,9 +40,13 @@ def load_seb_file(path: Path | str) -> ExamConfig:
         data.get("hashedQuitPassword") or data.get("hashedAdminPassword") or ""
     )
 
+    raw_duration = data.get("examDurationMinutes", 0)
+    duration_minutes: int | None = int(raw_duration) if raw_duration else None
+
     return ExamConfig(
         start_url=start_url,
         quit_url=quit_url,
         window_title=path.stem,
+        duration_minutes=duration_minutes,
         hashed_quit_password=hashed_quit_password,
     )

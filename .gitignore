@@ -100,3 +100,4 @@ config.toml
 *.seed
 *.sqlite
 *.db
+*.sebexam

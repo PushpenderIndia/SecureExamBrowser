@@ -16,6 +16,7 @@ class SEBConfig:
     def __init__(self) -> None:
         self.start_url = "https://www.codechef.com/"
         self.quit_url = "https://www.codechef.com/ide"
+        self.duration_minutes: int | None = None
         self.originator_version = "SEB_iOS_3.5.4_15683"
         # sha256("admin123")
         self.hashed_admin_password = (
@@ -34,8 +35,10 @@ class SEBConfig:
         )
 
     def build_plist_dict(self) -> dict:
-        """Assemble the complete plist dictionary (359 keys)."""
-        return {
+        """Assemble the complete plist dictionary."""
+        d = {
+            # Custom CodeChef fields
+            "examDurationMinutes": self.duration_minutes if self.duration_minutes is not None else 0,
             # URL filter
             "URLFilterEnable": False,
             "URLFilterEnableContentFilter": False,
@@ -429,3 +432,4 @@ class SEBConfig:
             "zoomUserName": "",
             "zoomVideoMuted": False,
         }
+        return d

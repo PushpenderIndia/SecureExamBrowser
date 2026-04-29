@@ -71,6 +71,12 @@ def main() -> None:
         )
     print()
 
+    # ── Duration ─────────────────────────────────────────────────
+    print("Exam Duration")
+    raw = _prompt("Duration in minutes (0 = no limit)", default="0")
+    config.duration_minutes = int(raw) if raw.isdigit() and int(raw) > 0 else None
+    print()
+
     # ── Originator tag ───────────────────────────────────────────
     print("Metadata")
     config.originator_version = _prompt(
