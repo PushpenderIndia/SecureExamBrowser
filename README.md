@@ -8,12 +8,14 @@
 - Monitors internet connectivity throughout the session.
 - Integrated Wi-Fi management so that candidate don't have to quit the app for internet switch/connectivity
 - Terminates deny-listed remote desktop (e.g. AnyDesk, TeamViewer, etc) and remote support apps (Whatsapp, Slack etc) automatically.
-- Detects suspicious remote-access connections by known domains and ports.
+- Detects suspicious remote-access connections by known domains and ports (App will kill the process even if Candidate renames the executable such as `anydesk.exe` to `test.exe`)
 - Detect Multiple Screens
 - AI Web Cam Proctoring
     - Multiple Face Detection
     - Face Verification throughout the session
     - No Face Detection
+- Auto Exit App, If Duration of exam is 75 min, then after the start time of exam, exactly after 75 min, app will auto close
+- Shows Current Datetime & Battery Percentage in Tool Bar
 
 ## TODO
 

@@ -1,12 +1,15 @@
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QMainWindow, QSizePolicy, QToolBar, QWidget
+from PySide6.QtWidgets import QLabel, QMainWindow, QSizePolicy, QToolBar, QWidget
 
+from .auto_exit import AutoExit, AutoExitWidget
 from .browser import SecureBrowser
 from .config import ExamConfig
+from .device_id import get_device_uid
 from .network import NetworkMonitor, NetworkStatusWidget, WiFiManager
 from .proctor import ProctorOverlay
 from .quit_handler import QuitHandler
+from .status_widget import StatusWidget
 
 _TOOLBAR_STYLE = """
     QToolBar {
@@ -59,6 +62,11 @@ class ExamWindow(QMainWindow):
         self.browser = SecureBrowser(config, quit_handler)
         self.setCentralWidget(self.browser)
 
+        self._auto_exit: AutoExit | None = None
+        if config.duration_minutes:
+            self._auto_exit = AutoExit(config.duration_minutes, self)
+            self._auto_exit.triggered.connect(self._on_auto_exit)
+
         self._setup_window()
         self._build_toolbar()
 
@@ -105,10 +113,25 @@ class ExamWindow(QMainWindow):
         reload_action.triggered.connect(lambda: self.browser.reload())
         toolbar.addAction(reload_action)
 
-        # Right side: network status (push via expanding spacer)
+        toolbar.addSeparator()
+
+        uid_label = QLabel(f"Device UID:  {get_device_uid()}", self)
+        uid_label.setStyleSheet("color: #cdd6f4; font-size: 12px; padding: 2px 8px;")
+        uid_label.setToolTip("Unique identifier for this device")
+        toolbar.addWidget(uid_label)
+
+        if self._auto_exit is not None:
+            toolbar.addSeparator()
+            toolbar.addWidget(AutoExitWidget(self._auto_exit, self))
+
+        # Right side: status info + network (push via expanding spacer)
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         toolbar.addWidget(spacer)
+
+        toolbar.addWidget(StatusWidget(self))
+
+        toolbar.addSeparator()
 
         toolbar.addWidget(
             NetworkStatusWidget(self._network_monitor, self._wifi_manager, self)
@@ -122,6 +145,11 @@ class ExamWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Quit handlers
     # ------------------------------------------------------------------
+
+    def _on_auto_exit(self) -> None:
+        """Called when the configured exam duration elapses."""
+        self._force_close = True
+        self.close()
 
     def _on_quit_url_reached(self) -> None:
         """Called when the exam platform redirects to the quit URL."""
