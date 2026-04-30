@@ -26,6 +26,12 @@
 - [ ] USB device detection (Phone-as-keyboard, external storage)
 - [ ] Anti-Software Cracking Strategies
 
+## Ways to Quit Exam
+
+- Redirect Candidate to `seb://quit`
+- Using `Quit Exam` Password (Ideally only supervisor should enter it)
+- `Auto Exit` the app exactly when the exam duration ends (e.g., 75 minutes after the start time) 
+
 ## Installation
 
 - `Windows`: download [SecureExamBrowser.exe](https://github.com/PushpenderIndia/SecureExamBrowser/releases/latest/download/SecureExamBrowser.exe) and run it.

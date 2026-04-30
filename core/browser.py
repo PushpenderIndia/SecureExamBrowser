@@ -33,6 +33,8 @@ _BLOCKED_COMBOS = frozenset(
 class SecurePage(QWebEnginePage):
     """Custom page that restricts navigation to the allowed host."""
 
+    seb_quit_requested = Signal()
+
     def __init__(self, config: ExamConfig, parent=None) -> None:
         super().__init__(parent)
         self.config = config
@@ -44,7 +46,11 @@ class SecurePage(QWebEnginePage):
     def acceptNavigationRequest(
         self, url: QUrl, nav_type: QWebEnginePage.NavigationType, is_main_frame: bool
     ) -> bool:
-        host = urlparse(url.toString()).netloc
+        url_str = url.toString()
+        if url_str.lower() == "seb://quit":
+            self.seb_quit_requested.emit()
+            return False
+        host = urlparse(url_str).netloc
         # Allow empty host (about:blank, data: URIs) and the exam host
         if not host or host == self.config.allowed_host:
             return True
@@ -80,6 +86,7 @@ class SecureBrowser(QWebEngineView):
 
     def _attach_secure_page(self) -> None:
         page = SecurePage(self.config, self)
+        page.seb_quit_requested.connect(self.quit_url_reached)
         self.setPage(page)
 
     # ------------------------------------------------------------------
